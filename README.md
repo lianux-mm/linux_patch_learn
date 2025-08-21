@@ -9,3 +9,7 @@ patch  review and learn
 
 ## rmap
  - selftest rmap: https://lore.kernel.org/all/20250819080047.10063-3-richard.weiyang@gmail.com/T/#u
+
+
+## madvise
+ - use per_vma lock for MADV_DONTNEED: https://lore.kernel.org/all/20250607220150.2980-1-21cnbao@gmail.com/T/#u
