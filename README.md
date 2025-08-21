@@ -2,22 +2,54 @@
 
 patch review and learn
 
+## roadmap
+
+- [The state of the page in 2025（LSFMM 2025）](https://zhuanlan.zhihu.com/p/1889756066042082709)
+  - 在 2025 年，目标是让 struct folio 确实成为一个与 struct page 分离的结构，并且可以独立分配。然后，可以从 struct page 中移除一些数据，缩小它，但还不能完全移除。
+- [MatthewWilcox/Memdescs/Path - Linux Kernel Newbies](https://kernelnewbies.org/MatthewWilcox/Memdescs/Path)
+- [MatthewWilcox/BuddyAllocator - Linux Kernel Newbies](https://kernelnewbies.org/MatthewWilcox/BuddyAllocator)
+
 ## THP
 
 - 2010-11-03 [\[PATCH 00 of 66\] Transparent Hugepage Support #32 - Andrea Arcangeli](https://lore.kernel.org/all/patchbomb.1288798055@v2.random/)
   - 支持 anon THP
   - v33 https://lore.kernel.org/all/20101215051540.GP5638@random.random/
-- November 11, 2014 [Transparent huge page reference counting \[LWN.net\]](https://lwn.net/Articles/619738/)
+- 2014-11-11 [Transparent huge page reference counting \[LWN.net\]](https://lwn.net/Articles/619738/)
 - 2015-10-06 [\[PATCHv12 00/37\] THP refcounting redesign - Kirill A. Shutemov](https://lore.kernel.org/linux-mm/1444145044-72349-1-git-send-email-kirill.shutemov@linux.intel.com/)
   - 新的 refcount mapcout 方案
+    - anon THP 同时存在 PMD map 和 PTE map 时，会给所有 subpage 的 mapcount +1，这是为了保证 atomici page_remove_rmap()；并且，还会加上 PG_double_map bit，用于在 page_remove_rmap() 时判断是否同时存在 anon THP 的 PMD map 和 PTE map，如果同时存在，并且此时正在 remove 最后一个 PMD map 了，就需要把之前给所有 subpage +1 的 mapcount 给 -1 回来。
   - 支持 THP 的 PMD map 和 PTE map 共存
+  - [PATCHv12 29/37] thp: implement split_huge_pmd() 新的 PMD 页表拆分实现
+    - 会 page_ref_add(page, HPAGE_PMD_NR - 1); 这是因为多出了 512 个 PTE 映射，少了 1 个 PMD 映射，而对 subpage 进行 get_page() 实际上是对 head page 操作的。
+  - [PATCHv12 30/37] thp: add option to setup migration entries during PMD split
+    1. [PATCH RFC 和之前一样依赖于 compound_lock()](https://lore.kernel.org/linux-mm/1402329861-7037-7-git-send-email-kirill.shutemov@linux.intel.com/)
+    2. [从 PATCHv2 开始](https://lore.kernel.org/linux-mm/1415198994-15252-19-git-send-email-kirill.shutemov@linux.intel.com/)，则是通过 migration PTE entries 来 stabilize page counts，也就是把页面放进 swapcache？和 try_to_unmap 差不多。
+  - [PATCHv12 32/37] thp: reintroduce split_huge_page() 新的 THP 大页拆分实现
+    1. 持有 anon_vma 锁，因为接下来我们要 rmap walk 了
+    2. 检查是不是只有 caller 有额外的一个 refcount（也就是除了与 mapcount 一一对应的 refcount 以外，还有其他的 refcount，这也意味着现在页面被 pin 住了无法 migrate）
+    3. `freeze_page()`：这个函数名不够好，其实就是反向映射，并做页表拆分
+    4. 遍历 anon_vma 区间树，找到所有映射了该大页的 PMD 虚拟地址
+    5. `freeze_page_vma()` 拆分 PMD 页表。有可能已经 swap out 了，页表已经拆分了，这时则是处理这些 PTE swap entry。
+  - [PATCHv12 34/37] thp: introduce deferred_split_huge_page() 首次支持延迟拆分大页。如果某个 THP 已经不存在 PMD map，如果其中某些 subpage 不存在 PTE map，那么这些 subpage 也许是可以被释放的（之所以说“也许”，是因为还要考虑到 refcount），这就需要先 split THP 拆成小页，然后才能释放。这个 patch 做的事情：在 subpage 也许可以被释放时，把要拆分的 THP 放进一个队列，等内存回收时由 shrinker 来释放。
+    - 在 page_remove_rmap() PMD page 时，如果这是最后一个 unmap 的大页，并且有 nr 个 subpage 没有 PTE map，说明这 nr 个 subpage 可以被释放，把 THP 放进队列。
+    - 在 page_remove_rmap() subpage 时，如果 unmap 该 subpage 后，该 subpage 的 mapcount 为 -1，这说明，首先，已经没有 PageDoubleMap 带来的 1 个 mapcount，即，该 THP 没有 PMD map 了，另外，还说明该 subpage 没有 PTE map 了。于是把 THP 放进队列。
+    - 定义了一个 deferred_split_shrinker
+    - 在拆分 THP 时，如果该大页在队列内，则将其从队列中移除。
+    - [ ] mlocked THP
 - 2016-03-07 [\[PATCHv2 0/4\] thp: simplify freeze_page() and unfreeze_page() - Kirill A. Shutemov](https://lore.kernel.org/linux-mm/1457351838-114702-1-git-send-email-kirill.shutemov@linux.intel.com/)
-  - 一个比较小的 patch set，在 split huge page 时，使用通用的 rmap walker `try_to_unmap()`，简化了 `freeze_page()` 和 `unfreeze_page()`。
+  - 在大页拆分时，使用通用的 rmap walker `try_to_unmap()`，简化了 `freeze_page()` 和 `unfreeze_page()`
+    - try_to_unmap() 见 https://www.cnblogs.com/tolimit/p/5432674.html
+  - TTU_SPLIT_HUGE_PMD 会让 try_to_unmap 时先 split_huge_pmd_address() 拆分 PMD 页表
+  - [ ] 何种情况下，在第一次 try_to_unmap() 后，tail page 的 page_count() 不为 1？为什么要再做一次 try_to_unmap()？
 - 2016-05-11 [Transparent huge pages in the page cache \[LWN.net\]](https://lwn.net/Articles/686690/)
-- 2016-06-15 [\[PATCHv9-rebased2 00/37\] THP-enabled tmpfs/shmem using compound pages - Kirill A. Shutemov](https://lore.kernel.org/linux-mm/1466021202-61880-1-git-send-email-kirill.shutemov@linux.intel.com/)
+- 2016-06-15 [\[PATCHv9 00/32\] THP-enabled tmpfs/shmem using compound pages - Kirill A. Shutemov](https://lore.kernel.org/linux-mm/1465222029-45942-1-git-send-email-kirill.shutemov@linux.intel.com/)
   - 支持 tmpfs/shmem THP
+  - [\[PATCHv9 05/32\] rmap: support file thp - Kirill A. Shutemov](https://lore.kernel.org/linux-mm/1465222029-45942-6-git-send-email-kirill.shutemov@linux.intel.com/)
+    - 与 `page_add_anon_rmap()` 完全不同的是，`page_add_file_rmap()` 对于 THP 会把每个 subpage 的 mapcount 都 +1
+    - [ ] 不理解。PG_double_map 的优化对 file page 无效，这是因为 lifecycle 与 anon page 不同，file page 在没有 map 时还可以继续存在，随时再次被 map。
 - 2022-11-03 [\[PATCH 0/3\] mm,huge,rmap: unify and speed up compound mapcounts - Hugh Dickins](https://lore.kernel.org/linux-mm/5f52de70-975-e94f-f141-543765736181@google.com/)
   - 优化 compound mapcount
+  - 大页拆分支持文件页
 - 2024-05-21 [Facing down mapcount madness \[LWN.net\]](https://lwn.net/Articles/974223/)
 - 2024-02-26 [\[PATCH v5 0/8\] Split a folio to any lower order folios - Zi Yan](https://lore.kernel.org/linux-mm/20240226205534.1603748-1-zi.yan@sent.com/)
   - 支持将 folio split 到任意 low order
@@ -25,6 +57,10 @@ patch review and learn
   - 支持 non-uniform folio split
 - 2025-05-12 [\[PATCH v2 0/8\] ext4: enable large folio for regular files - Zhang Yi](https://lore.kernel.org/all/20250512063319.3539411-1-yi.zhang@huaweicloud.com/)
   - 为 ext4 regular files 支持 large folio
+
+TAO
+
+- 2024-02-29 🚧 [\[LSF/MM/BPF TOPIC\] TAO: THP Allocator Optimizations - Yu Zhao](https://lore.kernel.org/linux-mm/20240229183436.4110845-1-yuzhao@google.com/)
 
 ## mTHP
 
@@ -48,3 +84,7 @@ selftests
 ## msharefs
 
 - 2025-08-20 [\[PATCH v3 00/22\] Add support for shared PTEs across processes - Anthony Yznaga](https://lore.kernel.org/linux-mm/20250820010415.699353-1-anthony.yznaga@oracle.com/)
+
+##
+
+- [Formalizing policy zones for memory \[LWN.net\]](https://lwn.net/Articles/964239/)
