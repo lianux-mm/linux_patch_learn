@@ -35,12 +35,11 @@ patch review and learn
     - 在 page_remove_rmap() subpage 时，如果 unmap 该 subpage 后，该 subpage 的 mapcount 为 -1，这说明，首先，已经没有 PageDoubleMap 带来的 1 个 mapcount，即，该 THP 没有 PMD map 了，另外，还说明该 subpage 没有 PTE map 了。于是把 THP 放进队列。
     - 定义了一个 deferred_split_shrinker
     - 在拆分 THP 时，如果该大页在队列内，则将其从队列中移除。
-    - [ ] mlocked THP
+    - [ ] 对 mlocked 的处理
 - 2016-03-07 [\[PATCHv2 0/4\] thp: simplify freeze_page() and unfreeze_page() - Kirill A. Shutemov](https://lore.kernel.org/linux-mm/1457351838-114702-1-git-send-email-kirill.shutemov@linux.intel.com/)
   - 在大页拆分时，使用通用的 rmap walker `try_to_unmap()`，简化了 `freeze_page()` 和 `unfreeze_page()`
     - try_to_unmap() 见 https://www.cnblogs.com/tolimit/p/5432674.html
-  - TTU_SPLIT_HUGE_PMD 会让 try_to_unmap 时先 split_huge_pmd_address() 拆分 PMD 页表
-  - [ ] 何种情况下，在第一次 try_to_unmap() 后，tail page 的 page_count() 不为 1？为什么要再做一次 try_to_unmap()？
+  - TTU_SPLIT_HUGE_PMD 会让 try_to_unmap() 时先 split_huge_pmd_address() 拆分 PMD 页表。注意每次调用 try_to_unmap() 只会 unmap 一个 page 的所有反向映射，所以要调用 HPAGE_PMD_NR 次。
 - 2016-05-11 [Transparent huge pages in the page cache \[LWN.net\]](https://lwn.net/Articles/686690/)
 - 2016-06-15 [\[PATCHv9 00/32\] THP-enabled tmpfs/shmem using compound pages - Kirill A. Shutemov](https://lore.kernel.org/linux-mm/1465222029-45942-1-git-send-email-kirill.shutemov@linux.intel.com/)
   - 支持 tmpfs/shmem THP
@@ -50,6 +49,8 @@ patch review and learn
 - 2022-11-03 [\[PATCH 0/3\] mm,huge,rmap: unify and speed up compound mapcounts - Hugh Dickins](https://lore.kernel.org/linux-mm/5f52de70-975-e94f-f141-543765736181@google.com/)
   - 优化 compound mapcount
   - 大页拆分支持文件页
+- 2023-07-10 [\[PATCH v4 0/9\] Create large folios in iomap buffered write path - Matthew Wilcox (Oracle)](https://lore.kernel.org/linux-fsdevel/20230710130253.3484695-1-willy@infradead.org/)
+- 2024-04-15 [\[PATCH v3 0/4\] mm/filemap: optimize folio adding and splitting - Kairui Song](https://lore.kernel.org/all/20240415171857.19244-1-ryncsn@gmail.com/)
 - 2024-05-21 [Facing down mapcount madness \[LWN.net\]](https://lwn.net/Articles/974223/)
 - 2024-02-26 [\[PATCH v5 0/8\] Split a folio to any lower order folios - Zi Yan](https://lore.kernel.org/linux-mm/20240226205534.1603748-1-zi.yan@sent.com/)
   - 支持将 folio split 到任意 low order
@@ -57,15 +58,20 @@ patch review and learn
   - 支持 non-uniform folio split
 - 2025-05-12 [\[PATCH v2 0/8\] ext4: enable large folio for regular files - Zhang Yi](https://lore.kernel.org/all/20250512063319.3539411-1-yi.zhang@huaweicloud.com/)
   - 为 ext4 regular files 支持 large folio
+- 2017-05-15 🚧 [\[PATCH -mm -v11 0/5\] THP swap: Delay splitting THP during swapping out - Huang, Ying](https://lore.kernel.org/linux-mm/20170515112522.32457-1-ying.huang@intel.com/)
 
 TAO
 
 - 2024-02-29 🚧 [\[LSF/MM/BPF TOPIC\] TAO: THP Allocator Optimizations - Yu Zhao](https://lore.kernel.org/linux-mm/20240229183436.4110845-1-yuzhao@google.com/)
+- 2024-05-24 [Allocator optimizations for transparent huge pages \[LWN.net\]](https://lwn.net/Articles/974636/)
 
 ## mTHP
 
+- 2024-09-20 [Linux Plumbers Conference 2024: Product practices of large folios on millions of OPPO Android phones](https://lpc.events/event/18/contributions/1705/)
 - 2025-08-19 [\[PATCH v10 00/13\] khugepaged: mTHP support - Nico Pache](https://lore.kernel.org/linux-mm/20250819134205.622806-1-npache@redhat.com/)
 - 2025-08-20 [\[RFC PATCH 00/11\] add shmem mTHP collapse support - Baolin Wang](https://lore.kernel.org/linux-mm/cover.1755677674.git.baolin.wang@linux.alibaba.com/)
+- [An Empirical Evaluation of PTE Coalescing](https://www.eliot.so/memsys23.pdf)
+- [Every Mapping Counts in Large Amounts: Folio Accounting](https://www.usenix.org/system/files/atc24-hildenbrand.pdf)
 
 selftests
 
@@ -84,6 +90,14 @@ selftests
 ## msharefs
 
 - 2025-08-20 [\[PATCH v3 00/22\] Add support for shared PTEs across processes - Anthony Yznaga](https://lore.kernel.org/linux-mm/20250820010415.699353-1-anthony.yznaga@oracle.com/)
+
+## LUO
+
+- [\[PATCH v3 00/30\] Live Update Orchestrator - Pasha Tatashin](https://lore.kernel.org/linux-mm/20250807014442.3829950-1-pasha.tatashin@soleen.com/)
+
+## MGLRU
+
+- 2022-09-18 [\[PATCH mm-unstable v15 00/14\] Multi-Gen LRU Framework - Yu Zhao](https://lore.kernel.org/linux-mm/20220918080010.2920238-1-yuzhao@google.com/)
 
 ##
 
