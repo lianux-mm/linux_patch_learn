@@ -14,6 +14,9 @@ patch review and learn
 - 2010-11-03 [\[PATCH 00 of 66\] Transparent Hugepage Support #32 - Andrea Arcangeli](https://lore.kernel.org/all/patchbomb.1288798055@v2.random/)
   - 支持 anon THP
   - v33 https://lore.kernel.org/all/20101215051540.GP5638@random.random/
+  - thp: transparent hugepage core
+    - 处理 anon page fault 时，会预先分配好一个 PTE pagetable，存放到 mm_struct 粒度的链表里。现在这个函数叫做 `pgtable_trans_huge_deposit()`，与之相对应的函数是 `pgtable_trans_huge_withdraw()`，即存款和提款。
+    - zap_huge_pmd() 时，会把这个预留的 pagetalbe 释放掉。
 - 2014-11-11 [Transparent huge page reference counting \[LWN.net\]](https://lwn.net/Articles/619738/)
 - 2015-10-06 [\[PATCHv12 00/37\] THP refcounting redesign - Kirill A. Shutemov](https://lore.kernel.org/linux-mm/1444145044-72349-1-git-send-email-kirill.shutemov@linux.intel.com/)
   - 新的 refcount mapcout 方案
@@ -35,7 +38,7 @@ patch review and learn
     - 在 page_remove_rmap() subpage 时，如果 unmap 该 subpage 后，该 subpage 的 mapcount 为 -1，这说明，首先，已经没有 PageDoubleMap 带来的 1 个 mapcount，即，该 THP 没有 PMD map 了，另外，还说明该 subpage 没有 PTE map 了。于是把 THP 放进队列。
     - 定义了一个 deferred_split_shrinker
     - 在拆分 THP 时，如果该大页在队列内，则将其从队列中移除。
-    - [ ] 对 mlocked 的处理
+    - [ ] 对 mlocked THP 的处理
 - 2016-03-07 [\[PATCHv2 0/4\] thp: simplify freeze_page() and unfreeze_page() - Kirill A. Shutemov](https://lore.kernel.org/linux-mm/1457351838-114702-1-git-send-email-kirill.shutemov@linux.intel.com/)
   - 在大页拆分时，使用通用的 rmap walker `try_to_unmap()`，简化了 `freeze_page()` 和 `unfreeze_page()`
     - try_to_unmap() 见 https://www.cnblogs.com/tolimit/p/5432674.html
@@ -43,12 +46,26 @@ patch review and learn
 - 2016-05-11 [Transparent huge pages in the page cache \[LWN.net\]](https://lwn.net/Articles/686690/)
 - 2016-06-15 [\[PATCHv9 00/32\] THP-enabled tmpfs/shmem using compound pages - Kirill A. Shutemov](https://lore.kernel.org/linux-mm/1465222029-45942-1-git-send-email-kirill.shutemov@linux.intel.com/)
   - 支持 tmpfs/shmem THP
-  - [\[PATCHv9 05/32\] rmap: support file thp - Kirill A. Shutemov](https://lore.kernel.org/linux-mm/1465222029-45942-6-git-send-email-kirill.shutemov@linux.intel.com/)
-    - 与 `page_add_anon_rmap()` 完全不同的是，`page_add_file_rmap()` 对于 THP 会把每个 subpage 的 mapcount 都 +1
+  - [PATCHv9 05/32] rmap: support file thp
+    - [ ] `page_add_file_rmap()` 对于 THP 会把每个 subpage 的 mapcount 都 +1。不理解为什不能和 `page_add_anon_rmap()` 一样，commit message 里说是后续再优化。
     - [ ] 不理解。PG_double_map 的优化对 file page 无效，这是因为 lifecycle 与 anon page 不同，file page 在没有 map 时还可以继续存在，随时再次被 map。
+  - thp: support file pages in zap_huge_pmd()
+  - thp: handle file pages in split_huge_pmd()
+    - 只做了 unmap，没有像 anon page 那样分配页表去填 PTE，因为 file page 可以等到 page fault 时再去填 PTE 页表。不理解，如果填 PTE 页表，避免后续可能的 pagefault 不是很好吗？
+  - thp: handle file COW faults
+    - split huge pmd 然后在 pte level 处理。因为不清楚在 private file page CoW 场景分配 huge page 的收益如何，可能是过度设计。
+  - thp: skip file huge pmd on copy_huge_pmd()
+    - 典型场景：进程 clone。对于 file pages，可以不 alloc pagetable，不 copy pte/pmd，可以在 pagefault 时做。copy_huge_pmd() 的调用路径只有 copy_page_range()，后者会使得没有 vma->anon_vma 的跳过 copy pte/pmd。但是因为 private file mapping 是可以有 anon_vma 的，所以没有跳过，这里选择了让 copy_huge_pmd() 通过 vma->vm_ops 把这种情况检查出来，跳过 private file huge pmd 的 copy。
+  - thp: file pages support for split_huge_page()
+  - vmscan: split file huge pages before paging them out
+  - filemap: prepare find and delete operations for huge pages
+  - shmem: add huge pages support
 - 2022-11-03 [\[PATCH 0/3\] mm,huge,rmap: unify and speed up compound mapcounts - Hugh Dickins](https://lore.kernel.org/linux-mm/5f52de70-975-e94f-f141-543765736181@google.com/)
   - 优化 compound mapcount
   - 大页拆分支持文件页
+  - mm,thp,rmap: simplify compound page mapcount handling
+- 2022-11-22 [\[PATCH v2 0/3\] mm,thp,rmap: rework the use of subpages_mapcount - Hugh Dickins](https://lore.kernel.org/linux-mm/a5849eca-22f1-3517-bf29-95d982242742@google.com/)
+- 2024-04-09 [\[PATCH v1 00/18\] mm: mapcount for large folios + page_mapcount() cleanups - David Hildenbrand](https://lore.kernel.org/linux-mm/20240409192301.907377-1-david@redhat.com/)
 - 2023-07-10 [\[PATCH v4 0/9\] Create large folios in iomap buffered write path - Matthew Wilcox (Oracle)](https://lore.kernel.org/linux-fsdevel/20230710130253.3484695-1-willy@infradead.org/)
 - 2024-04-15 [\[PATCH v3 0/4\] mm/filemap: optimize folio adding and splitting - Kairui Song](https://lore.kernel.org/all/20240415171857.19244-1-ryncsn@gmail.com/)
 - 2024-05-21 [Facing down mapcount madness \[LWN.net\]](https://lwn.net/Articles/974223/)
