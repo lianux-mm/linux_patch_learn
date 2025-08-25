@@ -84,7 +84,9 @@ TAO
 
 ## mTHP
 
+- 2023-12-07 [\[PATCH v9 00/10\] Multi-size THP for anonymous memory - Ryan Roberts](https://lore.kernel.org/linux-mm/20231207161211.2374093-1-ryan.roberts@arm.com/)
 - 2024-09-20 [Linux Plumbers Conference 2024: Product practices of large folios on millions of OPPO Android phones](https://lpc.events/event/18/contributions/1705/)
+- 2025-08-14 [\[RFC PATCH 0/7\] add mTHP support for wp - Vernon Yang](https://lore.kernel.org/linux-mm/20250814113813.4533-1-vernon2gm@gmail.com/)
 - 2025-08-19 [\[PATCH v10 00/13\] khugepaged: mTHP support - Nico Pache](https://lore.kernel.org/linux-mm/20250819134205.622806-1-npache@redhat.com/)
 - 2025-08-20 [\[RFC PATCH 00/11\] add shmem mTHP collapse support - Baolin Wang](https://lore.kernel.org/linux-mm/cover.1755677674.git.baolin.wang@linux.alibaba.com/)
 - [An Empirical Evaluation of PTE Coalescing](https://www.eliot.so/memsys23.pdf)
@@ -93,6 +95,10 @@ TAO
 selftests
 
 - 2025-08-18 [\[PATCH v5 0/5\] Better split_huge_page_test result check - Zi Yan](https://lore.kernel.org/linux-mm/20250818184622.1521620-1-ziy@nvidia.com/)
+
+## CONT PTE
+
+- 2024-02-15 [\[PATCH v6 00/18\] Transparent Contiguous PTEs for User Mappings - Ryan Roberts](https://lore.kernel.org/linux-mm/20240215103205.2607016-1-ryan.roberts@arm.com/)
 
 ## rmap
 
@@ -103,32 +109,37 @@ selftests
 ## madvise
 
 - 2025-06-07 [\[PATCH v4\] mm: use per_vma lock for MADV_DONTNEED - Barry Song](https://lore.kernel.org/all/20250607220150.2980-1-21cnbao@gmail.com/)
-  - mm: madvise: use walk_page_range_vma() instead of walk_page_range()
-    - do_madvise [behavior=MADV_DONTNEED]
-      - madvise_lock
-          - lock_vma_under_rcu
-            - madvise_do_behavior
-                - madvise_single_locked_vma
-                  -  madvise_vma_behavior
-                      -   madvise_dontneed_free
-                          -  madvise_dontneed_single_vma
-                              - map_page_range_single_batched [.reclaim_pt = true]
-                                -   unmap_single_vma
-                                    -  unmap_page_range
-                                        - zap_p4d_range
-                                            -  zap_pud_range
-                                                -  zap_pmd_range
-                                                    - zap_pte_range
-                                                      - try_get_and_clear_pmd
-                                                          - free_pte
 
-        调用关系如上所示do_behavior中遍历会调用madvise_walk_vmas就已经进行了vma的查找，之后调用 madvise_free_single_vma时就不需要在walk_page_range进行vma的查找了，直接使用use walk_page_range_vma()传入vma参数就可以，减少了一次vma的查找开销
+  - mm: madvise: use walk_page_range_vma() instead of walk_page_range()
+
+    - do_madvise [behavior=MADV_DONTNEED]
+
+      - madvise_lock
+
+        - lock_vma_under_rcu
+          - madvise_do_behavior
+            - madvise_single_locked_vma
+              - madvise_vma_behavior
+                - madvise_dontneed_free
+                  - madvise_dontneed_single_vma
+                    - map_page_range_single_batched [.reclaim_pt = true]
+                      - unmap_single_vma
+                        - unmap_page_range
+                          - zap_p4d_range
+                            - zap_pud_range
+                              - zap_pmd_range
+                                - zap_pte_range
+                                  - try_get_and_clear_pmd
+                                    - free_pte
+
+        调用关系如上所示 do_behavior 中遍历会调用 madvise_walk_vmas 就已经进行了 vma 的查找，之后调用 madvise_free_single_vma 时就不需要在 walk_page_range 进行 vma 的查找了，直接使用 use walk_page_range_vma()传入 vma 参数就可以，减少了一次 vma 的查找开销
+
   - mm: use per_vma lock for MADV_DONTNEED
-    目前支持的per vma仅限于本地进程single vma同时不能涉及uffd,这样的情况使用rcu机制可以极大的降低优先级翻转和读者等待，其他的情况回退到mmap_lock（读写锁）, 新的锁的模式MADVISE_VMA_READ_LOCK区别原来的读写锁只有dontneed和free这俩行为支持
+    目前支持的 per vma 仅限于本地进程 single vma 同时不能涉及 uffd,这样的情况使用 rcu 机制可以极大的降低优先级翻转和读者等待，其他的情况回退到 mmap_lock（读写锁）, 新的锁的模式 MADVISE_VMA_READ_LOCK 区别原来的读写锁只有 dontneed 和 free 这俩行为支持
   - mm: madvise: use per_vma lock for MADV_FREE
-    为free扩展per vma支持，同时之前的walk page的路径中增加PGWALK_VMA_RDLOCK_VERIFY只会锁住当前的vma
+    为 free 扩展 per vma 支持，同时之前的 walk page 的路径中增加 PGWALK_VMA_RDLOCK_VERIFY 只会锁住当前的 vma
   - mm: fix the race between collapse and PT_RECLAIM under per-vma lock
-    collapse合并时操作的是整个的2M空间的vma，而之前的dontneed和free的逻辑在回收时候允许支持per vma造成了lock race，通过改变lock顺序解除lock race
+    collapse 合并时操作的是整个的 2M 空间的 vma，而之前的 dontneed 和 free 的逻辑在回收时候允许支持 per vma 造成了 lock race，通过改变 lock 顺序解除 lock race
 
 ## msharefs
 
@@ -146,6 +157,6 @@ selftests
 
 - [Formalizing policy zones for memory \[LWN.net\]](https://lwn.net/Articles/964239/)
 
+## mm init
 
-## mm init 
 - 2025-08-21 [\[PATCH RFC 00/35\] mm: remove nth_page()](https://lore.kernel.org/linux-mm/20250821200701.1329277-1-david@redhat.com/T/#m27507cb86d8619f636328aeda4cf7cd3249948c9)
