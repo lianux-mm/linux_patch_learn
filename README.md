@@ -103,6 +103,32 @@ selftests
 ## madvise
 
 - 2025-06-07 [\[PATCH v4\] mm: use per_vma lock for MADV_DONTNEED - Barry Song](https://lore.kernel.org/all/20250607220150.2980-1-21cnbao@gmail.com/)
+  - mm: madvise: use walk_page_range_vma() instead of walk_page_range()
+    - do_madvise [behavior=MADV_DONTNEED]
+      - madvise_lock
+          - lock_vma_under_rcu
+            - madvise_do_behavior
+                - madvise_single_locked_vma
+                  -  madvise_vma_behavior
+                      -   madvise_dontneed_free
+                          -  madvise_dontneed_single_vma
+                              - map_page_range_single_batched [.reclaim_pt = true]
+                                -   unmap_single_vma
+                                    -  unmap_page_range
+                                        - zap_p4d_range
+                                            -  zap_pud_range
+                                                -  zap_pmd_range
+                                                    - zap_pte_range
+                                                      - try_get_and_clear_pmd
+                                                          - free_pte
+
+        调用关系如上所示do_behavior中遍历会调用madvise_walk_vmas就已经进行了vma的查找，之后调用 madvise_free_single_vma时就不需要在walk_page_range进行vma的查找了，直接使用use walk_page_range_vma()传入vma参数就可以，减少了一次vma的查找开销
+  - mm: use per_vma lock for MADV_DONTNEED
+    目前支持的per vma仅限于本地进程single vma同时不能涉及uffd,这样的情况使用rcu机制可以极大的降低优先级翻转和读者等待，其他的情况回退到mmap_lock（读写锁）, 新的锁的模式MADVISE_VMA_READ_LOCK区别原来的读写锁只有dontneed和free这俩行为支持
+  - mm: madvise: use per_vma lock for MADV_FREE
+    为free扩展per vma支持，同时之前的walk page的路径中增加PGWALK_VMA_RDLOCK_VERIFY只会锁住当前的vma
+  - mm: fix the race between collapse and PT_RECLAIM under per-vma lock
+    collapse合并时操作的是整个的2M空间的vma，而之前的dontneed和free的逻辑在回收时候允许支持per vma造成了lock race，通过改变lock顺序解除lock race
 
 ## msharefs
 
