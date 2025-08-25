@@ -145,3 +145,7 @@ selftests
 ##
 
 - [Formalizing policy zones for memory \[LWN.net\]](https://lwn.net/Articles/964239/)
+
+
+## mm init 
+- 2025-08-21 [\[PATCH RFC 00/35\] mm: remove nth_page()](https://lore.kernel.org/linux-mm/20250821200701.1329277-1-david@redhat.com/T/#m27507cb86d8619f636328aeda4cf7cd3249948c9)
