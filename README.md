@@ -77,6 +77,18 @@ patch review and learn
   - 为 ext4 regular files 支持 large folio
 - 2017-05-15 🚧 [\[PATCH -mm -v11 0/5\] THP swap: Delay splitting THP during swapping out - Huang, Ying](https://lore.kernel.org/linux-mm/20170515112522.32457-1-ying.huang@intel.com/)
 
+
+selftest
+
+-2025-8-18[\[PATCH v5 0/5\] Better split_huge_page_test result check](https://lore.kernel.org/linux-mm/20250818184622.1521620-1-ziy@nvidia.com/)
+这一组patch增加了对于thp分裂后的order检查，Just note that the code does not handle memremapped THP, since
+it only checks page flags without checking the PFN. So when a vaddr range is mapped
+to a THP/mTHP head page and some other THP/mTHP tail pages, the code just treats
+the whole vaddr range as if it is mapped to a single THP/mTHP and gets a wrong
+order. After-split folios do not have this concern, so
+gather_after_split_folio_orders() is simplified to not handle such cases.
+目前支持的场景如上，虽然baoling老师重用了这组patch在[\[RFC PATCH 00/11\] add shmem mTHP collapse support](https://lore.kernel.org/all/955e0b9682b1746c528a043f0ca530b54ee22536.1755677674.git.baolin.wang@linux.alibaba.com/)但是可能有点仍会出现问题，目前ziyan老师局限的这种场景比较稳健
+
 TAO
 
 - 2024-02-29 🚧 [\[LSF/MM/BPF TOPIC\] TAO: THP Allocator Optimizations - Yu Zhao](https://lore.kernel.org/linux-mm/20240229183436.4110845-1-yuzhao@google.com/)
