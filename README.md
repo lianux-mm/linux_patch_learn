@@ -80,7 +80,7 @@ patch review and learn
 
 selftest
 
--2025-8-18[\[PATCH v5 0/5\] Better split_huge_page_test result check](https://lore.kernel.org/linux-mm/20250818184622.1521620-1-ziy@nvidia.com/)
+- 2025-8-18[\[PATCH v5 0/5\] Better split_huge_page_test result check](https://lore.kernel.org/linux-mm/20250818184622.1521620-1-ziy@nvidia.com/)
 这一组patch增加了对于thp分裂后的order检查，Just note that the code does not handle memremapped THP, since
 it only checks page flags without checking the PFN. So when a vaddr range is mapped
 to a THP/mTHP head page and some other THP/mTHP tail pages, the code just treats
