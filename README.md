@@ -62,7 +62,6 @@ patch review and learn
   - shmem: add huge pages support
 - 2022-11-03 [\[PATCH 0/3\] mm,huge,rmap: unify and speed up compound mapcounts - Hugh Dickins](https://lore.kernel.org/linux-mm/5f52de70-975-e94f-f141-543765736181@google.com/)
   - 优化 compound mapcount
-  - 大页拆分支持文件页
   - mm,thp,rmap: simplify compound page mapcount handling
 - 2022-11-22 [\[PATCH v2 0/3\] mm,thp,rmap: rework the use of subpages_mapcount - Hugh Dickins](https://lore.kernel.org/linux-mm/a5849eca-22f1-3517-bf29-95d982242742@google.com/)
 - 2024-04-09 [\[PATCH v1 00/18\] mm: mapcount for large folios + page_mapcount() cleanups - David Hildenbrand](https://lore.kernel.org/linux-mm/20240409192301.907377-1-david@redhat.com/)
@@ -172,3 +171,10 @@ selftests
 ## mm init
 
 - 2025-08-21 [\[PATCH RFC 00/35\] mm: remove nth_page()](https://lore.kernel.org/linux-mm/20250821200701.1329277-1-david@redhat.com/T/#m27507cb86d8619f636328aeda4cf7cd3249948c9)
+
+## reclaim
+
+- 2013-05-13 [\[PATCH 3/4\] mm: Activate !PageLRU pages on mark_page_accessed if page is on local pagevec - Mel Gorman](https://lore.kernel.org/linux-mm/1368440482-27909-4-git-send-email-mgorman@suse.de/)
+- 2025-02-14 [\[PATCH v4 0/4\] mm: batched unmap lazyfree large folios during reclamation - Barry Song](https://lore.kernel.org/linux-mm/20250214093015.51024-1-21cnbao@gmail.com/)
+- 2025-04-02 [\[PATCH v2 8/9\] mm: Remove swap_writepage() and shmem_writepage() - Matthew Wilcox (Oracle)](https://lore.kernel.org/all/20250402150005.2309458-9-willy@infradead.org/)
+  在 shrink_folio_list 时，只有 shmem 和 anon 会 pageout，脏文件页不会 pageout
