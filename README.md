@@ -170,7 +170,7 @@ selftests
 
 ## mm init
 
-- 2025-08-21 [\[PATCH RFC 00/35\] mm: remove nth_page()](https://lore.kernel.org/linux-mm/20250821200701.1329277-1-david@redhat.com/T/#m27507cb86d8619f636328aeda4cf7cd3249948c9)
+- 2025-08-27 [\[PATCH v1 00/36\] mm: remove nth_page()](https://lore.kernel.org/linux-mm/20250827220141.262669-1-david@redhat.com/T/#mc904b4675c39f993fb43a0098637e087166d6df7)
 
 ## reclaim
 
