@@ -172,6 +172,10 @@ selftests
 
 - 2025-08-27 [\[PATCH v1 00/36\] mm: remove nth_page()](https://lore.kernel.org/linux-mm/20250827220141.262669-1-david@redhat.com/T/#mc904b4675c39f993fb43a0098637e087166d6df7)
 
+## vma optimization
+- 2023-02-07 [\[PATCH v4 00/33\] Per-VMA locks](https://lore.kernel.org/linux-mm/20250827220141.262669-1-david@redhat.com/T/#mc904b4675c39f993fb43a0098637e087166d6df7)
+vma 减少锁的争用
+
 ## reclaim
 
 - 2013-05-13 [\[PATCH 3/4\] mm: Activate !PageLRU pages on mark_page_accessed if page is on local pagevec - Mel Gorman](https://lore.kernel.org/linux-mm/1368440482-27909-4-git-send-email-mgorman@suse.de/)
