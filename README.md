@@ -171,6 +171,8 @@ selftests
 ## mm init
 
 - 2025-08-27 [\[PATCH v1 00/36\] mm: remove nth_page()](https://lore.kernel.org/linux-mm/20250827220141.262669-1-david@redhat.com/T/#mc904b4675c39f993fb43a0098637e087166d6df7)
+ #define pfn_to_page(pfn) (void *)((pfn) * PAGE_SIZE)
+初始化的重构非常的有意思，开始的平坦内存是初始化的page对应一个连续数组，但是这样会导致很大的内存浪费，后面引入了稀疏内存将内存分为section 一般64位普遍是128M对应一个section，这部分内存对应一个page的数组，便于pfn和page的转化，因为不连续所以需要这个#define nth_page(page,n) pfn_to_page(page_to_pfn((page)) + (n))来找到下一个数组里面对应的page，这样反复的计算非常的麻烦但是又不得不做，因为可能会跨section导致直接递增寻址失败，david强制使用vmemmap和加入判读避免buddy，hugetlb，cma等大块内存申请超越section的访问，后面我会更新文章记录下
 
 ## vma optimization
 - 2023-02-07 [\[PATCH v4 00/33\] Per-VMA locks](https://lore.kernel.org/linux-mm/20250827220141.262669-1-david@redhat.com/T/#mc904b4675c39f993fb43a0098637e087166d6df7)
