@@ -184,3 +184,8 @@ vma 减少锁的争用
 - 2025-02-14 [\[PATCH v4 0/4\] mm: batched unmap lazyfree large folios during reclamation - Barry Song](https://lore.kernel.org/linux-mm/20250214093015.51024-1-21cnbao@gmail.com/)
 - 2025-04-02 [\[PATCH v2 8/9\] mm: Remove swap_writepage() and shmem_writepage() - Matthew Wilcox (Oracle)](https://lore.kernel.org/all/20250402150005.2309458-9-willy@infradead.org/)
   在 shrink_folio_list 时，只有 shmem 和 anon 会 pageout，脏文件页不会 pageout
+
+
+## swap 
+- 2025-09-17  [\[PATCH v4 00/15\] mm, swap: introduce swap table as swap cache (phase I)- Kairui Song](https://lore.kernel.org/linux-mm/99f57a96-611a-b6be-fe00-3ac785154d1c@google.com/T/#m25856b1be7a11ec2bf1c482137244897541c7446)
+  swap cache新的管理方式详情见这篇文章 swap学习记录和研究https://zhuanlan.zhihu.com/p/1911006969755578935
