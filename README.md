@@ -160,10 +160,6 @@ selftests
 
 - [\[PATCH v3 00/30\] Live Update Orchestrator - Pasha Tatashin](https://lore.kernel.org/linux-mm/20250807014442.3829950-1-pasha.tatashin@soleen.com/)
 
-## MGLRU
-
-- 2022-09-18 [\[PATCH mm-unstable v15 00/14\] Multi-Gen LRU Framework - Yu Zhao](https://lore.kernel.org/linux-mm/20220918080010.2920238-1-yuzhao@google.com/)
-
 ##
 
 - [Formalizing policy zones for memory \[LWN.net\]](https://lwn.net/Articles/964239/)
@@ -185,7 +181,24 @@ vma 减少锁的争用
 - 2025-04-02 [\[PATCH v2 8/9\] mm: Remove swap_writepage() and shmem_writepage() - Matthew Wilcox (Oracle)](https://lore.kernel.org/all/20250402150005.2309458-9-willy@infradead.org/)
   在 shrink_folio_list 时，只有 shmem 和 anon 会 pageout，脏文件页不会 pageout
 
+workingset
 
-## swap 
+- 2014-02-04 [\[patch 00/10\] mm: thrash detection-based file cache sizing v9](https://lore.kernel.org/linux-mm/1391475222-1169-1-git-send-email-hannes@cmpxchg.org/)
+  - 2012-05-02 [Better active/inactive list balancing \[LWN.net\]](https://lwn.net/Articles/495543/)
+- 2019-11-07 [\[PATCH 0/3\] mm: fix page aging across multiple cgroups](https://lore.kernel.org/linux-mm/20191107205334.158354-1-hannes@cmpxchg.org/)
+- 2020-05-20 [\[PATCH 00/14\] mm: balance LRU lists based on relative thrashing v2 - Johannes Weiner](https://lore.kernel.org/all/20200520232525.798933-1-hannes@cmpxchg.org/)
+- 2020-07-23 [\[PATCH v7 0/6\] workingset protection/detection on the anonymous LRU list](https://lore.kernel.org/linux-mm/1595490560-15117-1-git-send-email-iamjoonsoo.kim@lge.com/)
+  - 2020-03-10 [Working-set protection for anonymous pages \[LWN.net\]](https://lwn.net/Articles/815342/)
+
+MGLRU
+
+- 2022-09-18 [\[PATCH mm-unstable v15 00/14\] Multi-Gen LRU Framework - Yu Zhao](https://lore.kernel.org/linux-mm/20220918080010.2920238-1-yuzhao@google.com/)
+
+## swap
+
 - 2025-09-17  [\[PATCH v4 00/15\] mm, swap: introduce swap table as swap cache (phase I)- Kairui Song](https://lore.kernel.org/linux-mm/99f57a96-611a-b6be-fe00-3ac785154d1c@google.com/T/#m25856b1be7a11ec2bf1c482137244897541c7446)
   swap cache新的管理方式详情见这篇文章 swap学习记录和研究https://zhuanlan.zhihu.com/p/1911006969755578935
+
+## Tiered Memory
+
+- [PET: Proactive Demotion for Efficient Tiered Memory Management](https://dl.acm.org/doi/pdf/10.1145/3689031.3717471)
